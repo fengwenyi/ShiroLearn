@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <import resource="spring-dao.xml" />
+    <import resource="spring-redis.xml" />
+    <import resource="spring-mvc.xml" />
+
+    <context:component-scan base-package="com.fengwenyi" />
+
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+
+        <property name="securityManager" ref="securityManager" />
+        <property name="loginUrl" value="login.html" />
+        <property name="unauthorizedUrl" value="403.html" />
+        <property name="filterChainDefinitions">
+            <value>
+                <!-- 从上往下开始匹配 -->
+                /login.html = anon
+                /subLogin = anon
+                <!--/testRole = roles["admin"]-->
+                <!--/testRole1 = roles["admin", "admin1"]-->
+                <!--/testPerms = perms["user:delete"]-->
+                <!--/testPerms1 = perms["user:delete", "user:update"]-->
+                /testRole = roles["admin", "admin1"]
+                /testRole1 = rolesOr["admin", "admin1"]
+                /* = authc
+            </value>
+        </property>
+        <property name="filters">
+            <map>
+                <entry key="rolesOr" value-ref="rolesOrFilter" />
+            </map>
+        </property>
+
+    </bean>
+
+    <bean class="com.fengwenyi.ssmshiroweb.filter.RolesOrFilter" id="rolesOrFilter" />
+
+    <!-- 创建SecurityManager -->
+    <bean class="org.apache.shiro.web.mgt.DefaultWebSecurityManager" id="securityManager">
+        <property name="realm" ref="customRealm" />
+        <property name="sessionManager" ref="sessionManager" />
+        <property name="cacheManager" ref="redisCacheManager" />
+        <property name="rememberMeManager" ref="cookieRememberMeManager" />
+    </bean>
+
+    <bean class="com.fengwenyi.ssmshiroweb.realm.CustomRealm" id="customRealm">
+        <property name="credentialsMatcher" ref="credentialsMatcher" />
+    </bean>
+
+    <bean class="org.apache.shiro.authc.credential.HashedCredentialsMatcher" id="credentialsMatcher">
+        <property name="hashAlgorithmName" value="md5" />
+        <property name="hashIterations" value="1" />
+    </bean>
+
+    <!--<bean class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager" id="sessionManager">
+        <property name="sessionDAO" ref="redisSessionDAO" />
+    </bean>-->
+    <bean class="com.fengwenyi.ssmshiroweb.session.CustomSessionManager" id="sessionManager">
+        <property name="sessionDAO" ref="redisSessionDAO" />
+    </bean>
+
+    <bean class="com.fengwenyi.ssmshiroweb.session.RedisSessionDAO" id="redisSessionDAO" />
+
+    <bean class="com.fengwenyi.ssmshiroweb.cache.RedisCacheManager" id="redisCacheManager" />
+
+    <bean class="org.apache.shiro.web.mgt.CookieRememberMeManager" id="cookieRememberMeManager">
+        <property name="cookie" ref="simpleCookie" />
+    </bean>
+
+    <bean class="org.apache.shiro.web.servlet.SimpleCookie" id="simpleCookie">
+        <constructor-arg value="rememberMe" />
+        <property name="maxAge" value="20000000" />
+    </bean>
+</beans>
